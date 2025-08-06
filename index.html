@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Management Leaderboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .resource-values {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .resource-values h3 {
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .resource-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .input-section {
+            margin-bottom: 25px;
+        }
+
+        .input-section h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .leaderboard {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .leaderboard h3 {
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            font-size: 1.4em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .username {
+            color: #3498db;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .username:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        .rank {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .rank-1 { color: #f39c12; }
+        .rank-2 { color: #95a5a6; }
+        .rank-3 { color: #cd7f32; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+        }
+
+        .resource-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .resource-card {
+            background: linear-gradient(45deg, #ecf0f1, #bdc3c7);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .resource-card h4 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-transform: capitalize;
+        }
+
+        .resource-amount {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #cce7ff; color: #004085; border: 1px solid #b8daff; }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Resource Management Leaderboard</h1>
+        
+        <div class="resource-values">
+            <h3>📊 Resource Values</h3>
+            <div class="resource-grid">
+                <div class="resource-item">Wood: 1 pt</div>
+                <div class="resource-item">Coal: 2 pts</div>
+                <div class="resource-item">Scrap: 2 pts</div>
+                <div class="resource-item">Skin: 3 pts</div>
+                <div class="resource-item">Gunpowder: 4 pts</div>
+                <div class="resource-item">Iron: 20 pts</div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <h3>📝 Add Resources</h3>
+            <textarea id="resourceInput" placeholder="Paste your entries here...&#10;Examples:&#10;100 wood Alice&#10;50 coal Bob&#10;prize 25 Charlie&#10;donor add John Smith&#10;streak Alice&#10;break Bob"></textarea>
+            <div class="button-group">
+                <button class="btn-primary" onclick="processEntries()">Process Entries</button>
+                <button class="btn-success" onclick="copyLeaderboard()">Copy Leaderboard</button>
+                <button class="btn-primary" onclick="showStatistics()">📊 Statistics</button>
+                <button class="btn-warning" onclick="exportData()">Export Data</button>
+                <button class="btn-warning" onclick="importData()">Import Data</button>
+                <button class="btn-danger" onclick="clearData()">Clear All Data</button>
+            </div>
+            <div id="statusMessage"></div>
+        </div>
+
+        <div class="leaderboard">
+            <h3>🥇 Current Leaderboard</h3>
+            
+            <!-- Donors Section -->
+            <div id="donorsSection" style="display: none; background: linear-gradient(45deg, #e8f5e8, #c8e6c9); padding: 15px; margin: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                <h4 style="margin: 0 0 10px 0; color: #2e7d32; font-size: 1.1em;">💝 Special Thanks to Our Donors</h4>
+                <div id="donorsList" style="color: #388e3c; font-weight: bold;"></div>
+            </div>
+            
+            <table id="leaderboardTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Username</th>
+                        <th>Total Points</th>
+                        <th>Resources Added</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #7f8c8d; font-style: italic;">No data yet. Add some entries to get started!</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for user details -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal for statistics -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeStatsModal()">&times;</span>
+            <h2>📊 Statistics Dashboard</h2>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Resource values
+        const resourceValues = {
+            wood: 1,
+            coal: 2,
+            scrap: 2,
+            skin: 3,
+            gunpowder: 4,
+            iron: 20
+        };
+
+        // Data storage
+        let userData = {};
+        let donors = [];
+        let streakData = {}; // {username: {currentStreak: 1000, streakCount: 2}}
+
+        // Load data from localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateLeaderboard();
+        });
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        function processEntries() {
+            const input = document.getElementById('resourceInput').value.trim();
+            if (!input) {
+                showStatus('Please enter some data to process.', 'error');
+                return;
+            }
+
+            const lines = input.split('\n').filter(line => line.trim());
+            let processed = 0;
+            let errors = 0;
+            let debugInfo = [];
+
+            lines.forEach((line, lineIndex) => {
+                line = line.trim();
+                if (!line) return;
+
+                try {
+                    debugInfo.push(`Processing line ${lineIndex + 1}: "${line}"`);
+                    
+                    if (line.toLowerCase().startsWith('prize ')) {
+                        // Handle prize command: "prize 50 Bob"
+                        const parts = line.split(' ');
+                        debugInfo.push(`Prize parts: [${parts.join(', ')}]`);
+                        if (parts.length >= 3) {
+                            const points = parseInt(parts[1]);
+                            const username = parts.slice(2).join(' ').toLowerCase();
+                            
+                            if (!isNaN(points) && username) {
+                                if (!userData[username]) {
+                                    userData[username] = { resources: {}, totalPoints: 0 };
+                                }
+                                userData[username].totalPoints += points;
+                                if (!userData[username].resources.prize) {
+                                    userData[username].resources.prize = 0;
+                                }
+                                userData[username].resources.prize += points;
+                                processed++;
+                                debugInfo.push(`✓ Prize added: ${points} points to ${username}`);
+                            } else {
+                                errors++;
+                                debugInfo.push(`✗ Prize error: invalid points or username`);
+                            }
+                        } else {
+                            errors++;
+                            debugInfo.push(`✗ Prize error: not enough parts`);
+                        }
+                    } else if (line.toLowerCase().startsWith('donor add ')) {
+                        // Handle donor command: "donor add John Smith"
+                        const donorName = line.substring(10).trim(); // Remove "donor add " prefix
+                        debugInfo.push(`Donor name extracted: "${donorName}"`);
+                        debugInfo.push(`Current donors: [${donors.join(', ')}]`);
+                        
+                        if (donorName.length > 0) {
+                            if (!donors.includes(donorName)) {
+                                donors.push(donorName);
+                                debugInfo.push(`✓ New donor added: ${donorName}`);
+                            } else {
+                                debugInfo.push(`✓ Donor already exists: ${donorName}`);
+                            }
+                            processed++;
+                        } else {
+                            errors++;
+                            debugInfo.push(`✗ Donor error: empty name`);
+                        }
+                    } else if (line.toLowerCase().startsWith('streak ')) {
+                        // Handle streak command: "streak Alice"
+                        const username = line.substring(7).trim().toLowerCase();
+                        debugInfo.push(`Streak for user: "${username}"`);
+                        
+                        if (username.length > 0) {
+                            if (!userData[username]) {
+                                userData[username] = { resources: {}, totalPoints: 0 };
+                            }
+                            if (!streakData[username]) {
+                                streakData[username] = { currentStreak: 500, streakCount: 1 };
+                            } else {
+                                streakData[username].currentStreak += 500;
+                                streakData[username].streakCount += 1;
+                            }
+                            
+                            userData[username].totalPoints += streakData[username].currentStreak;
+                            
+                            // Add to resources for tracking
+                            if (!userData[username].resources.streak) {
+                                userData[username].resources.streak = 0;
+                            }
+                            userData[username].resources.streak += streakData[username].currentStreak;
+                            
+                            processed++;
+                            debugInfo.push(`✓ Streak added: ${streakData[username].currentStreak} points to ${username} (streak #${streakData[username].streakCount})`);
+                        } else {
+                            errors++;
+                            debugInfo.push(`✗ Streak error: empty username`);
+                        }
+                    } else if (line.toLowerCase().startsWith('break ')) {
+                        // Handle break command: "break Bob"
+                        const username = line.substring(6).trim().toLowerCase();
+                        debugInfo.push(`Break streak for user: "${username}"`);
+                        
+                        if (username.length > 0 && streakData[username]) {
+                            const pointsToRemove = streakData[username].currentStreak * 2;
+                            
+                            if (!userData[username]) {
+                                userData[username] = { resources: {}, totalPoints: 0 };
+                            }
+                            
+                            userData[username].totalPoints = Math.max(0, userData[username].totalPoints - pointsToRemove);
+                            
+                            // Track broken streak in resources
+                            if (!userData[username].resources.broken_streak) {
+                                userData[username].resources.broken_streak = 0;
+                            }
+                            userData[username].resources.broken_streak += pointsToRemove;
+                            
+                            debugInfo.push(`✓ Streak broken: removed ${pointsToRemove} points from ${username}`);
+                            delete streakData[username]; // Reset streak
+                            processed++;
+                        } else if (username.length > 0) {
+                            debugInfo.push(`✓ Break attempted but no streak found for ${username}`);
+                            processed++;
+                        } else {
+                            errors++;
+                            debugInfo.push(`✗ Break error: empty username`);
+                        }
+                    } else {
+                        // Handle regular resource: "100 wood Alice"
+                        const parts = line.split(' ');
+                        debugInfo.push(`Resource parts: [${parts.join(', ')}]`);
+                        if (parts.length >= 3) {
+                            const amount = parseInt(parts[0]);
+                            const resource = parts[1].toLowerCase();
+                            const username = parts.slice(2).join(' ').toLowerCase();
+                            
+                            if (!isNaN(amount) && resource && username) {
+                                if (!userData[username]) {
+                                    userData[username] = { resources: {}, totalPoints: 0 };
+                                }
+                                
+                                // Add resource amount
+                                if (!userData[username].resources[resource]) {
+                                    userData[username].resources[resource] = 0;
+                                }
+                                userData[username].resources[resource] += amount;
+                                
+                                // Calculate points
+                                const pointValue = resourceValues[resource] || 1;
+                                const points = amount * pointValue;
+                                userData[username].totalPoints += points;
+                                
+                                processed++;
+                                debugInfo.push(`✓ Resource added: ${amount} ${resource} to ${username} (${points} points)`);
+                            } else {
+                               
