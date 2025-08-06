@@ -358,37 +358,39 @@
         </div>
     </div>
 
-    <script>
-        // Resource values
-        const resourceValues = {
-            wood: 1,
-            coal: 2,
-            scrap: 2,
-            skin: 3,
-            gunpowder: 4,
-            iron: 20
-        };
+    <script type="text/javascript">
+        // Ensure DOM is loaded before initializing
+        (function() {
+            // Resource values
+            const resourceValues = {
+                wood: 1,
+                coal: 2,
+                scrap: 2,
+                skin: 3,
+                gunpowder: 4,
+                iron: 20
+            };
 
-        // Data storage
-        let userData = {};
-        let donors = [];
-        let streakData = {}; // {username: {currentStreak: 1000, streakCount: 2}}
+            // Data storage
+            let userData = {};
+            let donors = [];
+            let streakData = {}; // {username: {currentStreak: 1000, streakCount: 2}}
 
-        // Load data from localStorage on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            updateLeaderboard();
-        });
+            // Load data from localStorage on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                loadData();
+                updateLeaderboard();
+            });
 
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('statusMessage');
-            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
-            setTimeout(() => {
-                statusDiv.innerHTML = '';
-            }, 3000);
-        }
+            function showStatus(message, type = 'info') {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 3000);
+            }
 
-        function processEntries() {
+            function processEntries() {
             const input = document.getElementById('resourceInput').value.trim();
             if (!input) {
                 showStatus('Please enter some data to process.', 'error');
@@ -540,4 +542,404 @@
                                 processed++;
                                 debugInfo.push(`✓ Resource added: ${amount} ${resource} to ${username} (${points} points)`);
                             } else {
-                               
+                                errors++;
+                                debugInfo.push(`✗ Resource error: invalid amount, resource, or username`);
+                            }
+                        } else {
+                            errors++;
+                            debugInfo.push(`✗ Resource error: not enough parts`);
+                        }
+                    }
+                } catch (e) {
+                    errors++;
+                    debugInfo.push(`✗ Exception: ${e.message}`);
+                }
+            });
+
+            // Show debug info in console
+            console.log('Debug Info:', debugInfo);
+
+            if (processed > 0) {
+                saveData();
+                updateLeaderboard();
+                document.getElementById('resourceInput').value = '';
+                showStatus(`Successfully processed ${processed} entries${errors > 0 ? ` (${errors} errors)` : ''}`, 'success');
+            } else {
+                showStatus(`Failed to process entries. ${errors} errors found. Check console for details.`, 'error');
+                console.error('Processing failed. Debug info:', debugInfo);
+            }
+        }
+
+        function updateLeaderboard() {
+            const tbody = document.getElementById('leaderboardBody');
+            
+            // Update donors section
+            updateDonorsSection();
+            
+            // Sort users by total points
+            const sortedUsers = Object.entries(userData)
+                .sort(([,a], [,b]) => b.totalPoints - a.totalPoints);
+
+            if (sortedUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #7f8c8d; font-style: italic;">No data yet. Add some entries to get started!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sortedUsers.map(([username, data], index) => {
+                const rank = index + 1;
+                const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                const resourceCount = Object.keys(data.resources).length;
+                
+                return `
+                    <tr>
+                        <td class="rank ${rankClass}">#${rank}</td>
+                        <td class="username" onclick="showUserDetails('${username}')">${username}</td>
+                        <td><strong>${data.totalPoints}</strong></td>
+                        <td>${resourceCount} type${resourceCount !== 1 ? 's' : ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateDonorsSection() {
+            const donorsSection = document.getElementById('donorsSection');
+            const donorsList = document.getElementById('donorsList');
+            
+            if (donors.length > 0) {
+                donorsSection.style.display = 'block';
+                donorsList.innerHTML = donors.join(' • ');
+            } else {
+                donorsSection.style.display = 'none';
+            }
+        }
+
+        function showUserDetails(username) {
+            const user = userData[username];
+            if (!user) return;
+
+            document.getElementById('modalTitle').innerHTML = `📊 ${username}'s Resource Breakdown`;
+            
+            let content = `<p><strong>Total Points:</strong> ${user.totalPoints}</p>`;
+            
+            // Show current streak info
+            if (streakData[username]) {
+                content += `<p><strong>🔥 Current Streak:</strong> Level ${streakData[username].streakCount} (Next: ${streakData[username].currentStreak + 500} points)</p>`;
+            }
+            
+            if (Object.keys(user.resources).length > 0) {
+                content += '<div class="resource-breakdown">';
+                for (const [resource, amount] of Object.entries(user.resources)) {
+                    let pointValue, totalPoints, description;
+                    
+                    if (resource === 'prize') {
+                        pointValue = 1;
+                        totalPoints = amount;
+                        description = totalPoints + ' bonus pts';
+                    } else if (resource === 'streak') {
+                        pointValue = 1;
+                        totalPoints = amount;
+                        description = totalPoints + ' streak pts';
+                    } else if (resource === 'broken_streak') {
+                        pointValue = 1;
+                        totalPoints = amount;
+                        description = totalPoints + ' pts lost';
+                    } else {
+                        pointValue = resourceValues[resource] || 1;
+                        totalPoints = amount * pointValue;
+                        description = pointValue + ' pts each = ' + totalPoints + ' pts';
+                    }
+                    
+                    content += `
+                        <div class="resource-card">
+                            <h4>${resource.replace('_', ' ')}</h4>
+                            <div class="resource-amount">${amount}</div>
+                            <div style="color: #7f8c8d; font-size: 0.9em;">
+                                ${description}
+                            </div>
+                        </div>
+                    `;
+                }
+                content += '</div>';
+            }
+
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function closeStatsModal() {
+            document.getElementById('statsModal').style.display = 'none';
+        }
+
+        function showStatistics() {
+            let statsContent = '';
+            
+            // Overall Stats
+            const totalUsers = Object.keys(userData).length;
+            const totalDonors = donors.length;
+            const totalStreaks = Object.keys(streakData).length;
+            const totalPoints = Object.values(userData).reduce((sum, user) => sum + user.totalPoints, 0);
+            
+            statsContent += `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                    <div class="resource-card">
+                        <h4>👥 Total Users</h4>
+                        <div class="resource-amount">${totalUsers}</div>
+                    </div>
+                    <div class="resource-card">
+                        <h4>💝 Total Donors</h4>
+                        <div class="resource-amount">${totalDonors}</div>
+                    </div>
+                    <div class="resource-card">
+                        <h4>🔥 Active Streaks</h4>
+                        <div class="resource-amount">${totalStreaks}</div>
+                    </div>
+                    <div class="resource-card">
+                        <h4>🏆 Total Points</h4>
+                        <div class="resource-amount">${totalPoints.toLocaleString()}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Resource Statistics
+            const resourceStats = {};
+            const resourceTotals = {};
+            Object.values(userData).forEach(user => {
+                Object.entries(user.resources).forEach(([resource, amount]) => {
+                    if (!resourceStats[resource]) {
+                        resourceStats[resource] = 0;
+                        resourceTotals[resource] = 0;
+                    }
+                    resourceStats[resource] += 1; // Count users who have this resource
+                    resourceTotals[resource] += amount;
+                });
+            });
+            
+            if (Object.keys(resourceStats).length > 0) {
+                statsContent += '<h3>📦 Resource Statistics</h3>';
+                statsContent += '<div class="resource-breakdown">';
+                Object.entries(resourceTotals)
+                    .sort(([,a], [,b]) => b - a)
+                    .forEach(([resource, total]) => {
+                        const userCount = resourceStats[resource];
+                        statsContent += `
+                            <div class="resource-card">
+                                <h4>${resource.replace('_', ' ')}</h4>
+                                <div class="resource-amount">${total.toLocaleString()}</div>
+                                <div style="color: #7f8c8d; font-size: 0.9em;">${userCount} user${userCount !== 1 ? 's' : ''}</div>
+                            </div>
+                        `;
+                    });
+                statsContent += '</div>';
+            }
+            
+            // Top Streaks
+            if (Object.keys(streakData).length > 0) {
+                statsContent += '<h3 style="margin-top: 25px;">🔥 Current Streaks</h3>';
+                statsContent += '<div class="resource-breakdown">';
+                Object.entries(streakData)
+                    .sort(([,a], [,b]) => b.streakCount - a.streakCount)
+                    .forEach(([username, data]) => {
+                        statsContent += `
+                            <div class="resource-card">
+                                <h4>${username}</h4>
+                                <div class="resource-amount">Level ${data.streakCount}</div>
+                                <div style="color: #7f8c8d; font-size: 0.9em;">Next: ${(data.currentStreak + 500).toLocaleString()} pts</div>
+                            </div>
+                        `;
+                    });
+                statsContent += '</div>';
+            }
+            
+            // Top Contributors
+            if (totalUsers > 0) {
+                statsContent += '<h3 style="margin-top: 25px;">🏆 Top 5 Contributors</h3>';
+                const sortedUsers = Object.entries(userData)
+                    .sort(([,a], [,b]) => b.totalPoints - a.totalPoints)
+                    .slice(0, 5);
+                
+                statsContent += '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">';
+                sortedUsers.forEach(([username, data], index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                    statsContent += `<p style="margin: 5px 0;"><strong>${medal} ${username}:</strong> ${data.totalPoints.toLocaleString()} points</p>`;
+                });
+                statsContent += '</div>';
+            }
+            
+            document.getElementById('statsContent').innerHTML = statsContent;
+            document.getElementById('statsModal').style.display = 'block';
+        }
+
+        function copyLeaderboard() {
+            if (Object.keys(userData).length === 0) {
+                showStatus('No data to copy!', 'error');
+                return;
+            }
+
+            const sortedUsers = Object.entries(userData)
+                .sort(([,a], [,b]) => b.totalPoints - a.totalPoints);
+
+            let output = '🏆 **Resource Leaderboard** 🏆\n\n';
+            
+            // Add donors section if any exist
+            if (donors.length > 0) {
+                output += '💝 **Special Thanks to Our Donors:** ' + donors.join(', ') + '\n\n';
+            }
+            
+            sortedUsers.forEach(([username, data], index) => {
+                const rank = index + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
+                const streakInfo = streakData[username] ? ` 🔥${streakData[username].streakCount}` : '';
+                output += `${medal} **#${rank} ${username}${streakInfo}** - ${data.totalPoints.toLocaleString()} points\n`;
+            });
+
+            output += '\n📊 **Resource Values:**\n';
+            output += 'Wood: 1pt | Coal: 2pts | Scrap: 2pts | Skin: 3pts | Gunpowder: 4pts | Iron: 20pts';
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(output).then(() => {
+                showStatus('Leaderboard copied to clipboard! Ready to paste in Discord.', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = output;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showStatus('Leaderboard copied to clipboard! Ready to paste in Discord.', 'success');
+            });
+        }
+
+        function exportData() {
+            if (Object.keys(userData).length === 0 && donors.length === 0) {
+                showStatus('No data to export!', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify({userData, donors, streakData}, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'leaderboard_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('Data exported successfully!', 'success');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        userData = importedData.userData || importedData; // Support old format
+                        donors = importedData.donors || [];
+                        streakData = importedData.streakData || {};
+                        saveData();
+                        updateLeaderboard();
+                        showStatus('Data imported successfully!', 'success');
+                    } catch (error) {
+                        showStatus('Error importing data. Please check the file format.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        function clearData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                userData = {};
+                donors = [];
+                streakData = {};
+                saveData();
+                updateLeaderboard();
+                showStatus('All data cleared!', 'info');
+            }
+        }
+
+        function saveData() {
+            try {
+                const dataToSave = {
+                    userData: userData,
+                    donors: donors,
+                    streakData: streakData
+                };
+                localStorage.setItem('leaderboardData', JSON.stringify(dataToSave));
+            } catch (e) {
+                console.warn('LocalStorage not available, data will not persist between sessions');
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('leaderboardData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    userData = data.userData || {};
+                    donors = data.donors || [];
+                    streakData = data.streakData || {};
+                } else {
+                    userData = {};
+                    donors = [];
+                    streakData = {};
+                }
+            } catch (e) {
+                console.warn('Could not load data from localStorage');
+                userData = {};
+                donors = [];
+                streakData = {};
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const userModal = document.getElementById('userModal');
+            const statsModal = document.getElementById('statsModal');
+            if (event.target === userModal) {
+                closeModal();
+            }
+            if (event.target === statsModal) {
+                closeStatsModal();
+            }
+        };
+
+        // Make functions globally available
+        window.processEntries = processEntries;
+        window.updateLeaderboard = updateLeaderboard;
+        window.showUserDetails = showUserDetails;
+        window.closeModal = closeModal;
+        window.closeStatsModal = closeStatsModal;
+        window.showStatistics = showStatistics;
+        window.copyLeaderboard = copyLeaderboard;
+        window.exportData = exportData;
+        window.importData = importData;
+        window.clearData = clearData;
+        window.saveData = saveData;
+        window.loadData = loadData;
+
+        })(); // End of IIFE
+    </script>
+</body>
+</html>
